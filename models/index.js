@@ -10,6 +10,7 @@ const protocol38 = require("./protocol-38.model");
 const protocol39 = require("./protocol-39.model");
 const protocol70 = require("./protocol-70.model");
 const temporary = require("./temporary.model");
+const log = require("./log.model");
 
 module.exports = {
   protocol20,
@@ -24,4 +25,5 @@ module.exports = {
   protocol39,
   protocol70,
   temporary,
+  log,
 };

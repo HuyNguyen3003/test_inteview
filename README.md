@@ -23,3 +23,10 @@
 - Hanle flow để cron (1) và (2) từ chạy lại nếu lỗi ở đâu dó
 - Quan sát socket thấy có lúc send msg tự động từ client -> socket
 - ở cronjob index sẽ bằng timeline.lenth
+
+* update timeline.json thành collection in db để sync data
+
+# use
+
+- Sử dụng lệnh node ./cronJob/crawlData.js để crawl data
+- Sử dụng lệnh ./cronJob/insertData.js để save data to db

@@ -1,3 +1,4 @@
+const { StatusLog } = require("../../config");
 const {
   protocol20,
   protocol21,
@@ -11,6 +12,7 @@ const {
   protocol39,
   protocol70,
   temporary,
+  log,
 } = require("../index");
 
 async function insertManyToModel(protocol, data) {
@@ -65,6 +67,38 @@ async function insertManyToModel(protocol, data) {
   }
 }
 
+async function getLogsByStatus(status) {
+  try {
+    const logs = await log.find({ status });
+    return logs;
+  } catch (error) {
+    console.error("Error fetching logs:", error);
+    throw error;
+  }
+}
+
+async function insertLog(filename) {
+  try {
+    await log.create({
+      filename: filename,
+    });
+  } catch (error) {
+    console.error("Error inserting log:", error);
+  }
+}
+async function countLogs() {
+  try {
+    const count = await log.countDocuments();
+    console.log("Total logs:", count);
+    return count;
+  } catch (error) {
+    console.error("Error counting logs:", error);
+  }
+}
+
 module.exports = {
+  insertLog,
   insertManyToModel,
+  getLogsByStatus,
+  countLogs,
 };

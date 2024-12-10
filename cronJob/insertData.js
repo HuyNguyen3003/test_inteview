@@ -1,6 +1,10 @@
 require("../dbs/init.mongodb");
 const fs = require("fs");
-const { insertManyToModel } = require("../models/repositories/socket.repo");
+const {
+  insertManyToModel,
+  getLogsByStatus,
+} = require("../models/repositories/socket.repo");
+const { StatusLog, timeInterval } = require("../config");
 
 const organizeData = (filename) => {
   try {
@@ -18,40 +22,69 @@ const organizeData = (filename) => {
       protocol70: [],
       temporary: [],
     };
-    const fileData = fs.readFileSync(`./data/${filename}.json`, "utf8");
-    const data = JSON.parse(fileData);
-    const jsonData = data.map((item) => {
+    const fileData = fs.readFileSync(`./data/${filename}`, "utf8");
+    const jsonData = JSON.parse(fileData);
+    const data = jsonData.map((item) => {
       return JSON.parse(item);
     });
-    jsonData.forEach((item) => {
+
+    data.forEach((item) => {
       const protocolKey = `protocol${item.protocol}`;
       if (organizedData.hasOwnProperty(protocolKey)) {
         organizedData[protocolKey].push(item.data);
       } else {
-        organizedData.temporary.push({ data: item });
+        organizedData["temporary"].push({ data: item });
       }
     });
+
     return organizedData;
   } catch (err) {
-    console.error("Error:", err);
+    console.error("Error organizing data:", err);
   }
 };
 
 async function saveDataToDB(filename) {
   const organizedData = organizeData(filename);
 
+  if (!organizedData) {
+    console.error("Failed to organize data for file:", filename);
+    return;
+  }
+
   for (const [protocol, dataArray] of Object.entries(organizedData)) {
     if (dataArray.length > 0) {
-      await insertManyToModel(protocol, dataArray);
+      try {
+        await insertManyToModel(protocol, dataArray);
+      } catch (err) {
+        console.error(`Error inserting data for protocol ${protocol}:`, err);
+      }
     }
   }
 }
 
 const checkTask = async () => {
-  const fileData = fs.readFileSync(`./data/timeline.json`, "utf8");
-  const data = JSON.parse(fileData);
-  console.log(data.length);
-};
-checkTask();
+  try {
+    const filenameArr = await getLogsByStatus(StatusLog.PENDING);
+    console.log("log: ", filenameArr.length);
 
-// saveDataToDB("output");
+    if (filenameArr.length === 0) return;
+
+    for (const item of filenameArr) {
+      try {
+        await saveDataToDB(item["filename"]);
+        item["status"] = StatusLog.SUCCESS;
+        await item.save();
+        console.log(`Processed file with ${item["filename"]}`);
+      } catch (err) {
+        item["status"] = StatusLog.ERROR;
+        await item.save();
+        console.error("Error processing file with index:", item["index"], err);
+      }
+    }
+  } catch (err) {
+    console.error("Error in checkTask:", err);
+  }
+};
+
+setInterval(checkTask, timeInterval);
+checkTask();
